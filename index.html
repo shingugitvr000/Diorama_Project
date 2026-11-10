@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>땅따먹기 디오라마</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wall:#d9e0e3; --wall-2:#c8d1d5; --ink:#22282c; --ink-soft:#56616a;
+  --wood:#6b4528; --wood-dark:#3f2716; --wood-light:#8a5c38;
+  --panel:#eef2f3; --line:#b9c3c8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --wall:#1c2226; --wall-2:#151a1d; --ink:#e6eaec; --ink-soft:#9aa6ae;
+    --wood:#5a3a22; --wood-dark:#2c1a0e; --wood-light:#79502f;
+    --panel:#252c31; --line:#3a454c;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --wall:#1c2226; --wall-2:#151a1d; --ink:#e6eaec; --ink-soft:#9aa6ae;
+  --wood:#5a3a22; --wood-dark:#2c1a0e; --wood-light:#79502f;
+  --panel:#252c31; --line:#3a454c;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(ellipse at 50% 20%, var(--wall), var(--wall-2));
+  color:var(--ink);
+  font-family:"Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  min-height:100vh;
+}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 16px 32px;display:grid;grid-template-columns:1fr 290px;gap:22px;align-items:start}
+header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+h1{font-family:"Black Han Sans","Apple SD Gothic Neo",sans-serif;font-weight:400;font-size:clamp(28px,4.4vw,46px);margin:0;letter-spacing:-0.5px;line-height:1}
+.sub{color:var(--ink-soft);margin:6px 0 0;font-size:15px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select{
+  font:inherit;font-size:15px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer;
+}
+button:hover,select:hover{border-color:var(--ink-soft)}
+button:focus-visible,select:focus-visible{outline:3px solid #2f5d8a;outline-offset:2px}
+button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:8px 11px}
+.seg button+button{border-left:1px solid var(--line)}
+
+.stage{position:relative;perspective:1600px;display:flex;justify-content:center}
+.board{
+  position:relative;
+  background:linear-gradient(180deg,var(--wood-light),var(--wood) 30%,var(--wood-dark));
+  padding:16px 16px 26px;border-radius:14px;
+  box-shadow:0 30px 40px -18px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.18), inset 0 -8px 0 rgba(0,0,0,.25);
+  transform:rotateX(12deg);transform-origin:50% 100%;
+}
+.board::after{
+  content:attr(data-plaque);position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
+  font-size:11px;color:#3b2a10;background:linear-gradient(#e2c37a,#b48b3a);
+  padding:1px 12px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.4);
+}
+canvas{display:block;border-radius:6px;background:#2b4b5e;touch-action:none;cursor:zoom-in}
+canvas.pan{cursor:grab}
+canvas.dragging{cursor:grabbing}
+.zoom{position:absolute;right:26px;bottom:36px;display:flex;gap:4px;align-items:center;
+  background:rgba(20,26,30,.72);padding:4px;border-radius:10px;backdrop-filter:blur(4px)}
+.zoom button{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);padding:4px 10px;font-size:14px;border-radius:7px;min-width:32px}
+.zoom button:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5)}
+.zoom span{color:#dfe6ea;font-size:12px;padding:0 6px;font-variant-numeric:tabular-nums;min-width:42px;text-align:center}
+@media (max-width:900px){ .zoom{right:16px;bottom:30px} }
+.banner{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;
+  opacity:0;transition:opacity .5s;
+}
+.banner.show{opacity:1}
+.banner div{
+  font-family:"Black Han Sans",sans-serif;font-size:clamp(28px,6vw,64px);color:#fff;
+  padding:14px 34px;border-radius:10px;text-shadow:0 3px 0 rgba(0,0,0,.35);
+  box-shadow:0 20px 50px rgba(0,0,0,.4);
+}
+
+aside{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+aside h2{font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:20px;margin:0 0 12px}
+.row{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;margin-bottom:10px}
+.dot{width:14px;height:14px;border-radius:3px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}
+.name{font-size:15px}
+.name.dead{text-decoration:line-through;color:var(--ink-soft)}
+.num{font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-soft)}
+.bar{grid-column:2/4;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:-4px}
+.bar i{display:block;height:100%;transition:width .4s}
+.row{cursor:pointer;border-radius:8px;padding:4px 6px;margin-left:-6px;margin-right:-6px}
+.row:hover{background:var(--line)}
+.row.focus{background:var(--ink);color:var(--panel)}
+.row.focus .num,.row.focus .loss{color:var(--panel)}
+.row:focus-visible{outline:3px solid #2b6fd6;outline-offset:1px}
+.hint{font-size:12px;color:var(--ink-soft);margin:-6px 0 12px}
+.loss{grid-column:2/4;font-size:12px;color:var(--ink-soft);margin-top:-6px}
+.log{margin-top:18px;border-top:1px solid var(--line);padding-top:12px;font-size:14px;line-height:1.55;max-height:260px;overflow:auto}
+.log p{margin:0 0 6px;color:var(--ink-soft)}
+.log p b{color:var(--ink);font-weight:400}
+.turn{font-size:13px;color:var(--ink-soft);margin-top:10px}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  .board{transform:rotateX(6deg);padding:10px 10px 22px}
+}
+@media (prefers-reduced-motion:reduce){ .board{transform:none} .banner{transition:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>땅따먹기 디오라마</h1>
+      <p class="sub">실제 지도 위에서, 또는 매번 새로 만든 지도 위에서 세력들이 알아서 싸웁니다.</p>
+    </div>
+    <div class="controls">
+      <select id="mapSel" aria-label="지도">
+        <option value="europe">유럽 지도</option>
+        <option value="asia">동아시아 지도</option>
+        <option value="world">세계 지도</option>
+        <option value="random">랜덤 지도</option>
+      </select>
+      <select id="factionSel" aria-label="세력 수">
+        <option value="2">2개 세력</option>
+        <option value="3">3개 세력</option>
+        <option value="4">4개 세력</option>
+        <option value="5">5개 세력</option>
+        <option value="6" selected>6개 세력</option>
+        <option value="7">7개 세력</option>
+        <option value="8">8개 세력</option>
+      </select>
+      <button id="playBtn" class="on">일시정지</button>
+      <div class="seg" role="group" aria-label="속도">
+        <button data-speed="1" class="on">1배</button>
+        <button data-speed="2">2배</button>
+        <button data-speed="4">4배</button>
+      </div>
+      <button id="newBtn">다시 시작</button>
+      <button id="soundBtn">소리 켜기</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="board" id="board" data-plaque="전장">
+      <canvas id="cv" aria-label="전장 지도. 휠이나 두 손가락으로 확대하고 끌어서 이동합니다."></canvas>
+      <div class="zoom" role="group" aria-label="지도 확대">
+        <button id="zIn" aria-label="확대">+</button>
+        <button id="zOut" aria-label="축소">−</button>
+        <button id="zFit">전체 보기</button>
+        <span id="zPct">100%</span>
+      </div>
+    </div>
+    <div class="banner" id="banner"><div id="bannerText"></div></div>
+  </div>
+
+  <aside>
+    <h2>전황</h2>
+    <p class="hint">나라를 누르면 그 영토만 밝게 보여 줍니다.</p>
+    <div id="standings"></div>
+    <div class="turn" id="turn"></div>
+    <div class="log" id="log"></div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const REAL_MAPS = {"europe":{"name":"유럽","cols":46,"rows":46,"grid":"...................########.####DDDD....DDDDDD..................#######...####DDDD....DDDDDD..................########..####DDDD.DD.DDDDDD................#########..#####DDDD..DDDDDDDD................#########..######DDDDDDDDDDDDD...............#########.#######DDDDDDDDDDDDDD..............#########..#########DDDDDDDDDDDD............##########...########DDDDDDDDDDDDD............##########...#######DDDDDDDDDDDDDD............##########...######DDDDDDDDDDDDDDD.............#########...######DDDDDDDDDDDDDDD............###########...##...DDDDDDDDDDDDDDD.............##########........DDDDDDDDDDDDDDD............###########...####DDDDDDDDDDDDDDDD.....C.......###.#####....####DDDDDDDDDDDDDDDD....C............####......###DDDDDDDDDDDDDDDD....CCC.........#.####....#.##DDDDDDDDDDDDDDDD...CCC.........##.###....#####DDDDDDDDDDDDDDDD....CCC........##..##....######DDDDDDDDDDDDDDD....CCC........####......#######DDDDDDDDDDDDDD..#CCCCC.......#........DD#######DDDDDDDDDDDDD###C..CC.......AAAA.FFFFFF#######DDDDDDDDDDDDD.###..CCC.....AAAAAAFFFFFFF#######DDDDDDDDDDDD.##..CCCC...##AAAAAFFFFFFFF######DDDDDDDDDDDDD###..CCCCC..##AAAAAAFFFFFFF########DDDDDDDDDDD.....CCCC..##AAAAAAAFFFFFFF########DDDDDDDDDDD.....CCCC.B##AAAAAAA#FFFFFFF#########DDDDDDDDD.........BBB#AAAAA####FFFFF###########DDDDDDD#.......BBBBBBBAAAAA######FF#############DDDDDD.....BBBBBBBBBAAAAA####################DDDDDD#.....BBBBBBBBBBAAAA#####################DDDDDD......BBBBBBB#########################DDDDDDDD.......BBBBBBB##EEE##################..DDDDDDD.......BBBBBBBEEEEE#############..DD.DDDDDDDDD........BBBBBBEEEEE.############...D..DDDDDDDD.......BBBBBBBE.EE..###########........DDDDDD..GGGGGGGBBB..B...EEE..#########.........##DDDD.GGGGGGGGGG....B.EEE...#######...........###DD..##GGGGGGG.......EEEE..#####HH...HHHH...#####.##GGGGGG......E...EEE.####.#H.HHHHHHHHHHHH###.##GGGGGG......E.....E..###..HHHHHHHHHHHHHHH##.##GGGGG.......E.....E..###..HHHHHHHHHHHHHH###..#GGGGG...........E.E...###..HHHHHHHHHHHHHH##.#GGGGG...........EE.....##...HHHHHHHHHHHH####....G....########...............H.HH.H########...##..##########...................##########","factions":[{"name":"독일","cap":1123},{"name":"프랑스","cap":1298},{"name":"영국","cap":1158},{"name":"러시아","cap":866},{"name":"이탈리아","cap":1766},{"name":"폴란드","cap":1129},{"name":"스페인","cap":1799},{"name":"튀르키예","cap":1874}]},"asia":{"name":"동아시아","cols":52,"rows":54,"grid":"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.D...........DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.D..........DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD.D......DDDDDDDDDDDDDDDDDDDDDDDAAAAADDDDDDDDDDDDDDDDDD......DDDDDDDDDDDDDDDDDDDDDDDDAAAAADDDDDDDDDDDDDDDDD......DDDDDDDDDDDDDDDDDDDDDDDDAAAAADDDDDDDDDDDDDDDDD......DDFFFDDDDDDDDDDDDDDDDDDAAAAAAADDDDDDDDDDDDDD.D......DFFFFFDDDDDDDDDDDDDDDDAAAAAAAADDDDDDDDDDDDD.DD......DDFFFFFDFFDDDDDDDDDDDDDAAAAAAADDDDDDDDDDDDD..DD.....FFFFFFFFFFFDDDDDFFFFDAAAAAAAAADDDDDDDDDDDDD.DD......FFFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAADDDDDDDDDD..DD.....FFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAADDDDDDDDDD.D.......FFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAAADDAADDDD..........FFFFFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAAADDDD...D.......FFFFFFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAADDDD...DD......FFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAAAAADDDD............FFFFFFFFFFFFFFFFFFFAAAAAAAAAAAAAAAAADDDD............FFFFFFFFFFFFFFFAFAAAAAAAAAAAAAAAAADDDDD.....B....D..FFFFFFFFFFFFFFFAAAAAAAAAAAAAAAAAAADDDDD.....BBB.D...FFFFFFFFFFFFFFFAAAAAAAAAAAAAAAAAAADDDD......BBBB....FFFFFFFFFFFFFFAAAAAAAAAAAAAAAAAAAA.DD......BBBB.....AAAAAFFFFFAAAAAAAAAAAAAAAAAAAAAAE.........B..B......AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEE..........B........AAAAAAAAAAAAAAAAAAAAAAAAAAAAEEEE..........B.........AAAAAAAAAAAAAAAAAAAAAAAA.AAAEEEE...........BB.......AAAAAAAAAAAAAAAAAAAAAA..AA..EE............BB........AAAAAAAAAAAAAAAAAAAAA.......EEE...........BB........AAAAAAAAAAAAAAAAAAAAAA......EEC..........BB.........AAAAAAAAAAAAAAAAAAAAAAAAAA....CC.........BBB........AAAAAAAAAAAAAAAAAAAAAAAA.....CCC.......BBBB.........AAAAAAAAAAAAAAAAAAAAAAAA.....CCCC......BBBBB........AAAAAAAAAAAAAAAAAAAAAA.......CCC...BBBBBBB..........AAAAAAAAAAAAAAAAAAAAAAA...........BBB.BB............AAAAAAAAAAAAAAAAAAAAAAA..........B.BB...............AAAAAAAAAAAAAAAAAAAAAAAA.........BBB................AAAAAAAAAAAAAAAAAAAAAAAA.........B..................AAAAAAAAAAAAAAAAAAAAAAAAA...........................AAAAAAAAAAAAAAAAAAAAAAAA............................AAAAAAAAAAAAAAAAAAAAAAAAA...........................AAAAAAAAAAAAAAAAAAAAAAAAA...........................##AAAAAAAAAAAAAAAAAAAAAAA...........................##AAAAAAAAAAAAAAAAAAAAA.............................###AAAAAAAAAAAAAAAAAAAA.............................##AAAAAAAAAAAAAAAAAAAAA.............................##AAAAAAAAAAAAAAAAAAAA..#...........................#AAAAAAAAAAAAAAAAAAAA..##...........................###AAAAAAAAAAAAAAAAA...##...........................###AAAGGGGAAAAAAAA.....#............................####AAGGGGGAAAAA....................................######GGGG...A......................................###H#####G...A......................................#HHHH###G...AA......................................##HHH##H#G...A..........##..........................#HHHHHHH#G.............##...........................","factions":[{"name":"중국","cap":1319},{"name":"일본","cap":1602},{"name":"한국","cap":1486},{"name":"러시아","cap":1022},{"name":"북한","cap":1380},{"name":"몽골","cap":634},{"name":"베트남","cap":2557},{"name":"태국","cap":2759}]},"world":{"name":"세계","cols":66,"rows":39,"grid":"........H.....H......#######.............B.....BBBBB.....................HHHH.HHHHH...#######..................BBBBBBBBBB...................HHHH.H.HHH...######..............B..BBBBBBBBBBBB.BB........AAA.....HHH.HHHHH...#####........###......BBBBBBBBBBBBBBBBBB.....AAAAAHHHHHHH.HHH.HH..#####........###B..BBBBBBBBBBBBBBBBBBBBBBBBB.AAAAAHHHHHHHHHH..HH..###.........###BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBAAAAAHHHHHHHHHHH.HH..###...##....####BBBBBBBBBBBBBBBBBBBBBBBBBBBB.AAAAAHHHHHHHHH....H..##.........#####BBBBBBBBBBBBBBBBBBBBBBBBBBB...AAAAHHHHHHHHH...H....#.........####BBBBBBBBBBBBBBBBBBBBBBBB.BB....A...AHHHHHHH...HHH.............##.#BBBBBBBBBBBBBBBBBBBBB...B...........AHHHHHHHHH.HHH..........#..#.##BBBBBBBBBBBBBBBBBBBB...B............HHHHHHHHHHHHH.........##.#####BBBBB###BBBBBBBBCBBB.................HHHHHHHHHHH.H..........#######BB#######B###BBCCBBB...............AAAAAAAAHHHH...........########BB######CC#####CCC..................AAAAAAAAHAA...........#######.BB.#####CCC###CCCC.#................AAAAAAAAA............##..#######.###CCCCCCCCCC#....................AAAAAAAA.............###....########CCCCCCCCC..#..................AAAAAAA.............#####...########CCCCCCCC..#....................###A...............#######GG#######E#CCCCCCC......................###..#............#######GG#####.EEEE##CCCC.........................#.#.#...........##############..EEE.###............................##............##############...EE...##..............................#.###........#############....E....#...............................####.........###########.........#.................................#DDDD...........#######..........###............................###DDDDDD.........#####............###...##........................#DDDDDDDD........######..................##.......................###DDDDD.........#####.................F...........................###DDDD.........########.............FFFF.........................###DDD..........####..#............FFFFFFF.........................###D............####..............FFFFFFFF.......................###D.............###...............FFFFFFF.........................###..............#.................FF.FFF........................###.....................................FF........................###......................................F....#...................##...........................................#....................##................................................................#..................................................................#...............................................","factions":[{"name":"미국","cap":1006},{"name":"러시아","cap":698},{"name":"중국","cap":1042},{"name":"브라질","cap":1870},{"name":"인도","cap":1233},{"name":"호주","cap":2236},{"name":"이집트","cap":1225},{"name":"캐나다","cap":874}]}};
+  const PALETTE = ["#d93a2b","#2b6fd6","#f2c418","#8e44c9","#f4f1ea","#16b3a3","#f2801f","#e04f9f"];
+  const NEUTRAL = "#7d8c6a";
+  const lum = h => { const v=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)); return (0.299*v[0]+0.587*v[1]+0.114*v[2])/255; };
+  const textOn = h => lum(h)>0.62 ? "#1f1a12" : "#ffffff";
+  let focusId = -1;
+  const RANDOM_NAMES = ["진홍 왕국","쪽빛 연합","황토 부족","자두 공국","상아 교단","청록 해적단","주황 칸국","흑철 제국"];
+  const SQ3 = Math.sqrt(3);
+  let COLS = 24, ROWS = 15;
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const banner = document.getElementById("banner");
+  const bannerText = document.getElementById("bannerText");
+  const standingsEl = document.getElementById("standings");
+  const logEl = document.getElementById("log");
+  const turnEl = document.getElementById("turn");
+  const boardEl = document.getElementById("board");
+  const mapSel = document.getElementById("mapSel");
+  const factionSel = document.getElementById("factionSel");
+
+  let cells = [], armies = [], factions = [], tick = 0, running = true, speed = 1;
+  let size = 20, ox = 0, oy = 0, acc = 0, last = 0, over = false, restartTimer = null, battleNo = 1;
+  let flashes = [], landCount = 1, mapName = "";
+  const cam={z:1,x:0,y:0}; let cssW=1, cssH=1;
+  let particles = [], shells = [], texts = [], shake = 0, soundOn = false, actx = null, lastSound = 0;
+
+  const idx = (c,r) => r*COLS + c;
+  function hexNeighbors(cell){
+    const {c,r} = cell, odd = r & 1;
+    const d = odd ? [[1,0],[-1,0],[1,-1],[0,-1],[1,1],[0,1]]
+                  : [[1,0],[-1,0],[0,-1],[-1,-1],[0,1],[-1,1]];
+    const out = [];
+    for (const [dc,dr] of d){
+      const nc=c+dc, nr=r+dr;
+      if (nc>=0 && nc<COLS && nr>=0 && nr<ROWS) out.push(cells[idx(nc,nr)]);
+    }
+    return out;
+  }
+  const rand = (a,b) => a + Math.random()*(b-a);
+  const ri = (a,b) => Math.floor(rand(a,b+1));
+  const isLand = x => x.terrain==="land";
+
+  function log(html){
+    const p = document.createElement("p");
+    p.innerHTML = html;
+    logEl.prepend(p);
+    while (logEl.children.length > 40) logEl.lastChild.remove();
+  }
+
+  function makeGrid(cols,rows){
+    COLS=cols; ROWS=rows; cells=[];
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++)
+      cells.push({c,r,h:Math.random(),terrain:"water",owner:-1,troops:0,capital:false,forest:false,n:null,links:null,sea:null});
+    cells.forEach(x => x.n = hexNeighbors(x));
+  }
+
+  // land neighbours plus short sea crossings (up to 3 water hexes) so islands can be invaded
+  function buildLinks(){
+    for (const x of cells){
+      x.sea = new Set();
+      if (!isLand(x)) { x.links=[]; continue; }
+      if (x.n.some(y=>!isLand(y))){
+        const seen = new Set([x]); let frontier = x.n.filter(y=>y.terrain==="water");
+        frontier.forEach(y=>seen.add(y));
+        for (let depth=1; depth<=3 && frontier.length; depth++){
+          const next=[];
+          for (const w of frontier) for (const y of w.n){
+            if (seen.has(y)) continue; seen.add(y);
+            if (y.terrain==="water") next.push(y);
+            else if (isLand(y) && !x.n.includes(y)) x.sea.add(y);
+          }
+          frontier = next;
+        }
+      }
+      x.links = x.n.filter(isLand).concat([...x.sea]);
+    }
+  }
+
+  function component(start){
+    const seen=new Set([start]), q=[start];
+    for (let i=0;i<q.length;i++) for (const y of q[i].links) if(!seen.has(y)){seen.add(y);q.push(y);}
+    return q;
+  }
+
+  function startGame(){
+    clearTimeout(restartTimer);
+    focusId=-1; armies=[]; flashes=[]; particles=[]; shells=[]; texts=[]; shake=0; tick=0; over=false; acc=0;
+    logEl.innerHTML="";
+    banner.classList.remove("show");
+    const key = mapSel.value;
+    if (key==="random") genRandom(); else genReal(key);
+    landCount = cells.filter(isLand).length;
+    cam.z=1; cam.x=0; cam.y=0;
+    boardEl.dataset.plaque = `${mapName} · 전투 ${battleNo++}`;
+    resize();
+    renderStandings();
+  }
+
+  function genReal(key){
+    const m = REAL_MAPS[key];
+    mapName = m.name;
+    makeGrid(m.cols, m.rows);
+    const n = Math.min(+factionSel.value, m.factions.length);
+    const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    cells.forEach((x,i)=>{
+      const ch = m.grid[i];
+      if (ch==="."){ x.terrain="water"; return; }
+      x.terrain="land";
+      const fi = alpha.indexOf(ch);
+      if (fi>=0 && fi<n){ x.owner=fi; x.troops=3; }
+      else { x.owner=-1; x.troops=ri(2,7); x.forest=Math.random()<0.12; }
+    });
+    buildLinks();
+    factions = m.factions.slice(0,n).map((f,i)=>({
+      name:f.name, color:PALETTE[i], id:i, alive:true,
+      aggression:rand(0.9,1.3), greed:rand(0.7,1.3), lostCapital:false, losses:0
+    }));
+    factions.forEach((f,i)=>{ const c=cells[m.factions[i].cap]; c.capital=true; c.troops=15; });
+    log(`${mapName} 지도 위에서 ${n}개 나라가 전쟁을 시작합니다.`);
+  }
+
+  function genRandom(){
+    mapName = "랜덤 지도";
+    const cols = ri(26,36);
+    makeGrid(cols, Math.round(cols*0.62));
+    for (let k=0;k<3;k++){
+      const nh = cells.map(x => (x.h*2 + x.n.reduce((s,y)=>s+y.h,0)) / (2+x.n.length));
+      cells.forEach((x,i)=>x.h=nh[i]);
+    }
+    // vignette so land gathers in the middle, then a random sea level
+    cells.forEach(x=>{
+      const dx = (x.c/COLS-0.5)*2, dy=(x.r/ROWS-0.5)*2;
+      x.h -= (dx*dx+dy*dy)*0.12*rand(0.6,1.4);
+    });
+    const sorted = [...cells].sort((a,b)=>a.h-b.h);
+    const waterRatio = rand(0.18,0.45);
+    const wCut = sorted[Math.floor(cells.length*waterRatio)].h;
+    const mCut = sorted[Math.floor(cells.length*0.94)].h;
+    cells.forEach(x=>{ x.terrain = x.h<wCut ? "water" : x.h>mCut ? "mountain" : "land"; });
+    buildLinks();
+    let best=[]; const seen=new Set();
+    for (const x of cells){ if(!isLand(x)||seen.has(x)) continue; const comp=component(x); comp.forEach(y=>seen.add(y)); if(comp.length>best.length) best=comp; }
+    const keep=new Set(best);
+    cells.forEach(x=>{ if(isLand(x)&&!keep.has(x)) x.terrain="water"; });
+    buildLinks();
+    cells.forEach(x=>{ if(isLand(x)){ x.troops=ri(1,5); x.forest=Math.random()<0.18; } });
+
+    const n = +factionSel.value;
+    const land = best;
+    const bfs = src => {
+      const dist=new Map([[src,0]]), q=[src];
+      for (let i=0;i<q.length;i++) for (const y of q[i].links) if(!dist.has(y)){dist.set(y,dist.get(q[i])+1);q.push(y);}
+      return dist;
+    };
+    const caps=[land[ri(0,land.length-1)]];
+    const minD=new Map(land.map(x=>[x,Infinity]));
+    while (caps.length<n){
+      const d=bfs(caps[caps.length-1]);
+      land.forEach(x=>minD.set(x,Math.min(minD.get(x),d.get(x)??Infinity)));
+      let far=null, fd=-1;
+      land.forEach(x=>{ const v=minD.get(x)+Math.random()*0.5; if(v>fd && v!==Infinity && !caps.includes(x)){fd=v;far=x;} });
+      caps.push(far);
+    }
+    const order = RANDOM_NAMES.map((_,i)=>i).sort(()=>Math.random()-0.5).slice(0,n).sort((a,b)=>a-b);
+    factions = order.map((fi,i)=>({
+      name:RANDOM_NAMES[fi], color:PALETTE[fi], id:i, alive:true,
+      aggression:rand(0.85,1.35), greed:rand(0.6,1.4), lostCapital:false, losses:0
+    }));
+    caps.forEach((x,i)=>{
+      x.owner=i; x.capital=true; x.troops=12;
+      x.n.forEach(y=>{ if(isLand(y)&&!y.capital){ y.owner=i; y.troops=4; } });
+    });
+    log(`새 지형을 만들었습니다. ${n}개 세력이 깃발을 꽂았습니다.`);
+  }
+
+  // ---------- simulation ----------
+  function step(){
+    tick++;
+    for (const x of cells){
+      if (x.owner<0 || !isLand(x)) continue;
+      const g = x.capital ? 3 : (tick%2===0 ? 1 : 0);
+      x.troops = Math.min(99, x.troops + g);
+    }
+    if (tick%6===0) cells.forEach(x=>{ if(x.owner<0 && isLand(x) && x.troops<6) x.troops++; });
+
+    const maxMoves = Math.max(6, Math.round(landCount/120));
+    for (const f of factions){
+      if (!f.alive) continue;
+      const dist=new Map(), q=[];
+      const mine=[];
+      for (const x of cells){
+        if (x.owner!==f.id) continue;
+        mine.push(x);
+        if (x.links.some(y=>y.owner!==f.id)){ dist.set(x,0); q.push(x); }
+      }
+      for (let i=0;i<q.length;i++) for (const y of q[i].links)
+        if (y.owner===f.id && !dist.has(y)){ dist.set(y,dist.get(q[i])+1); q.push(y); }
+
+      let moves=0;
+      // artillery: strong front cells lob shells at enemy garrisons
+      for (const x of q){
+        if (x.troops<22 || Math.random()>0.07) continue;
+        const tg = x.n.filter(y=>isLand(y)&&y.owner>=0&&y.owner!==f.id);
+        if (!tg.length) continue;
+        const to = tg[ri(0,tg.length-1)];
+        shells.push({from:x,to,f:f.id,t:0,dur:0.75});
+        const [mx,my]=topPos(x); explosionAt(mx,my-size*0.3,0.25,null,true);
+        sound("thud",0.6);
+      }
+      mine.sort(()=>Math.random()-0.5);
+      for (const x of mine){
+        if (moves>=maxMoves) break;
+        if (x.troops<3 || Math.random()<0.35) continue;
+        const d = dist.get(x);
+        if (d===0){
+          let best=null, bs=-Infinity;
+          for (const y of x.links){
+            if (y.owner===f.id) continue;
+            const incoming = armies.filter(a=>a.to===y && a.f===f.id).reduce((s,a)=>s+a.n,0);
+            const def = Math.max(0, y.troops - incoming);
+            let s = -def;
+            if (y.owner<0) s += 4*f.greed; else s += 2*f.aggression;
+            if (y.capital) s += 10*f.aggression;
+            if (x.sea.has(y)) s -= 3;
+            s += rand(0,2);
+            if (s>bs){ bs=s; best={y,def}; }
+          }
+          if (!best) continue;
+          const send = x.troops-1;
+          const ratio = best.y.owner<0 ? 1.1 : 1.25/f.aggression;
+          if (send > best.def*ratio+1 || (x.troops>=70 && Math.random()<0.25)){
+            launch(x,best.y,send,f.id); moves++;
+          }
+        } else if (d!==undefined){
+          const towards = x.links.filter(y=>y.owner===f.id && dist.get(y)===d-1);
+          if (towards.length){
+            towards.sort((a,b)=>a.troops-b.troops);
+            launch(x,towards[0],x.troops-1,f.id); moves++;
+          }
+        }
+      }
+    }
+  }
+
+  function launch(from,to,n,f){
+    if (n<1) return;
+    from.troops -= n;
+    const sea = from.sea.has(to);
+    armies.push({from,to,n,f,t:0,dur:(sea?1.8:0.9)+Math.random()*0.3,sea});
+  }
+
+  function resolve(a){
+    const y=a.to;
+    const [tx,ty]=topPos(y);
+    if (y.owner===a.f){ y.troops=Math.min(99,y.troops+a.n); return; }
+    const prev=y.owner, def=y.troops, loss=Math.min(a.n,def);
+    factions[a.f].losses+=loss; if (prev>=0) factions[prev].losses+=loss;
+    const k=Math.min(2.2,0.45+(a.n+def)/45);
+    if (prev>=0 || def>=4){ explosionAt(tx,ty-size*0.2,k); sound("boom",k); if (prev>=0) flashes.push({cell:y,t:0}); }
+    else dustAt(tx,ty,6);
+    if (loss>0) floatText(tx+rand(-4,4),ty-size*0.7,`-${loss}`,"#ffb3a3");
+    if (a.n > def){
+      y.troops=a.n-def; y.owner=a.f;
+      y.flip=1; y.scorch=Math.max(y.scorch||0, prev>=0?1:0.35);
+      ringAt(tx,ty,factions[a.f].color,1);
+      if (y.capital && prev>=0){
+        y.capital=false; factions[prev].lostCapital=true;
+        shake=Math.max(shake,11);
+        explosionAt(tx,ty-size*0.3,3);
+        ringAt(tx,ty,"#ffffff",2.2); ringAt(tx,ty,factions[a.f].color,3.2);
+        floatText(tx,ty-size*1.6,`${factions[prev].name} 수도 함락!`,factions[a.f].color,true);
+        sound("big",2);
+        log(`<b>${factions[a.f].name}</b>이(가) <b>${factions[prev].name}</b>의 수도를 함락했습니다.`);
+      }
+      if (prev>=0 && !cells.some(x=>x.owner===prev)){
+        factions[prev].alive=false;
+        armies=armies.filter(b=>b.f!==prev);
+        shells=shells.filter(b=>b.f!==prev);
+        shake=Math.max(shake,7);
+        floatText(tx,ty-size*2.4,`${factions[prev].name} 멸망`,"#ffffff",true);
+        log(`<b>${factions[prev].name}</b>이(가) 지도에서 사라졌습니다.`);
+      }
+    } else {
+      y.troops-=a.n; y.hit=1;
+      floatText(tx,ty-size*1.3,"방어!","#e8eef2");
+      sound("clash",k);
+    }
+  }
+
+  // ---------- effects ----------
+  function topPos(x){ const [cx,cy0]=center(x); return [cx, cy0+size*0.6-lift(x)]; }
+  function puff(x,y,o){
+    if (particles.length>1100) particles.shift();
+    particles.push(Object.assign({x,y,vx:0,vy:0,g:0,life:0,max:1,r:3,grow:0,color:"#fff",kind:"smoke"},o));
+  }
+  function explosionAt(x,y,k=1,colors,small){
+    const u=Math.max(size,8);
+    puff(x,y,{kind:"flash",r:u*0.7*k,max:small?0.12:0.22,color:"#fff1b8"});
+    const sparks=small?3:Math.round(8*k)+4;
+    for (let i=0;i<sparks;i++){
+      const an=rand(0,Math.PI*2), sp=rand(1.2,4)*u*Math.sqrt(k);
+      const col = colors ? colors[ri(0,colors.length-1)] : (Math.random()<0.5?"#ffd76a":"#ff8a3d");
+      puff(x,y,{kind:"spark",vx:Math.cos(an)*sp,vy:Math.sin(an)*sp*0.7-u*2.2,g:u*10,max:rand(0.35,0.75),r:rand(0.07,0.13)*u,color:col});
+    }
+    if (small || colors) return;
+    for (let i=0;i<Math.round(3*k)+2;i++)
+      puff(x+rand(-0.35,0.35)*u*k,y-rand(0,0.3)*u,{kind:"smoke",vx:rand(-0.4,0.4)*u,vy:-rand(0.5,1.3)*u,max:rand(1,1.8),r:rand(0.18,0.3)*u*Math.sqrt(k),grow:u*0.45,color:Math.random()<0.5?"#4f4b47":"#77726b"});
+    for (let i=0;i<Math.round(4*k);i++){
+      const an=rand(Math.PI*1.1,Math.PI*1.9), sp=rand(1.5,3)*u;
+      puff(x,y,{kind:"debris",vx:Math.cos(an)*sp,vy:Math.sin(an)*sp,g:u*12,max:rand(0.5,0.9),r:rand(0.08,0.14)*u,color:"#3b2a1a"});
+    }
+  }
+  function dustAt(x,y,n){
+    const u=Math.max(size,8);
+    for (let i=0;i<n;i++) puff(x+rand(-0.4,0.4)*u,y+rand(-0.1,0.2)*u,{kind:"smoke",vx:rand(-0.5,0.5)*u,vy:-rand(0.1,0.4)*u,max:rand(0.5,0.9),r:u*0.12,grow:u*0.3,color:"#b59b74"});
+  }
+  function ringAt(x,y,color,k=1){ puff(x,y,{kind:"ring",r:size*0.3,grow:size*3.2*k,max:0.55+0.15*k,color}); }
+  function floatText(x,y,text,color,big){ if (texts.length>60) texts.shift(); texts.push({x,y,text,color,t:0,max:big?2.4:1.1,big}); }
+
+  function sound(kind,k=1){
+    if (!soundOn || !actx) return;
+    const t=performance.now(); if (t-lastSound<60 && kind!=="big") return; lastSound=t;
+    const dur = kind==="big"?1.4 : kind==="thud"?0.3 : kind==="clash"?0.18 : 0.5;
+    const buf=actx.createBuffer(1,Math.floor(actx.sampleRate*dur),actx.sampleRate);
+    const d=buf.getChannelData(0);
+    for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length, kind==="clash"?5:2.2);
+    const src=actx.createBufferSource(); src.buffer=buf;
+    const flt=actx.createBiquadFilter();
+    flt.type = kind==="clash" ? "bandpass" : "lowpass";
+    flt.frequency.value = kind==="big"?320 : kind==="thud"?220 : kind==="clash"?2600 : 700;
+    const g=actx.createGain();
+    g.gain.value=Math.min(0.6,(kind==="big"?0.5:0.14)*Math.min(k,2));
+    src.connect(flt).connect(g).connect(actx.destination); src.start();
+  }
+
+  function armyPos(a){
+    const [x1,y1]=center(a.from), [x2,y2]=center(a.to);
+    const t=Math.min(1,a.t/a.dur);
+    const e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    const ps=Math.max(size,8);
+    return [x1+(x2-x1)*e, y1+(y2-y1)*e+size*0.15-Math.sin(t*Math.PI)*ps*(a.sea?0.15:0.5), t];
+  }
+
+  function updateEffects(dt){
+    for (const p of particles){
+      p.life+=dt; p.x+=p.vx*dt; p.vy+=p.g*dt; p.y+=p.vy*dt; p.r+=p.grow*dt;
+      if (p.kind==="smoke"){ p.vx*=0.98; }
+    }
+    particles=particles.filter(p=>p.life<p.max);
+    for (const t of texts) t.t+=dt;
+    texts=texts.filter(t=>t.t<t.max);
+    shake=Math.max(0,shake-dt*22);
+    const u=Math.max(size,8);
+    for (const x of cells){
+      if (x.flip>0) x.flip=Math.max(0,x.flip-dt*1.6);
+      if (x.hit>0) x.hit=Math.max(0,x.hit-dt*3);
+      if (x.scorch>0){
+        x.scorch=Math.max(0,x.scorch-dt*0.07);
+        if (x.scorch>0.3 && Math.random()<dt*1.6*x.scorch){
+          const [tx,ty]=topPos(x);
+          puff(tx+rand(-0.3,0.3)*u,ty,{kind:"smoke",vx:rand(-0.15,0.15)*u,vy:-rand(0.6,1)*u,max:rand(1.4,2.2),r:u*0.12,grow:u*0.35,color:"#3d3a37"});
+        }
+      }
+    }
+    for (const a of armies){
+      if (!a.sea && Math.random()<dt*6){ const [px,py]=armyPos(a); dustAt(px,py+u*0.3,1); }
+    }
+    for (const sh of shells){
+      sh.t+=dt;
+      if (Math.random()<dt*25){ const [sx,sy]=shellPos(sh); puff(sx,sy,{kind:"smoke",vy:-u*0.2,max:0.5,r:u*0.06,grow:u*0.15,color:"#9a948c"}); }
+    }
+    const landed=shells.filter(s=>s.t>=s.dur);
+    shells=shells.filter(s=>s.t<s.dur);
+    for (const sh of landed){
+      const y=sh.to, [tx,ty]=topPos(y);
+      explosionAt(tx+rand(-0.25,0.25)*u,ty-u*0.1,0.7);
+      sound("boom",0.6);
+      if (y.owner>=0 && y.owner!==sh.f && y.troops>1){
+        const dmg=Math.min(y.troops-1,ri(1,3));
+        y.troops-=dmg; y.hit=1;
+        factions[y.owner].losses+=dmg;
+        floatText(tx,ty-u*0.7,`-${dmg}`,"#ffb3a3");
+      }
+      y.scorch=Math.max(y.scorch||0,0.45);
+    }
+    if (over && Math.random()<dt*5){
+      const w=factions.find(f=>f.alive);
+      const mine=cells.filter(x=>x.owner===w.id);
+      const x=mine[ri(0,mine.length-1)];
+      if (x){ const [tx,ty]=topPos(x); explosionAt(tx,ty-u*rand(2,4),1.3,[w.color,"#ffffff","#ffe08a"]); }
+    }
+  }
+  function shellPos(sh){
+    const [x1,y1]=topPos(sh.from), [x2,y2]=topPos(sh.to);
+    const t=Math.min(1,sh.t/sh.dur);
+    return [x1+(x2-x1)*t, y1+(y2-y1)*t-Math.sin(t*Math.PI)*Math.max(size,8)*2.6-size*0.3];
+  }
+
+  function checkWin(){
+    if (over) return;
+    const alive=factions.filter(f=>f.alive);
+    if (alive.length===1){
+      over=true;
+      const w=alive[0];
+      bannerText.textContent=`${w.name} 승리`;
+      bannerText.style.background=w.color;
+      bannerText.style.color = textOn(w.color);
+      banner.classList.add("show");
+      log(`<b>${w.name}</b>이(가) 전장을 통일했습니다. 잠시 후 새 전투가 시작됩니다.`);
+      restartTimer=setTimeout(()=>{ if(over) startGame(); },7000);
+    }
+  }
+
+  // ---------- rendering ----------
+  function resize(){
+    const avail = Math.min(cv.closest(".stage").clientWidth, 1000) - (innerWidth<900?20:32);
+    const maxH = Math.max(320, innerHeight*0.78);
+    const sw = avail/(SQ3*(COLS+0.5));
+    const sh = maxH/(1.5*(ROWS-1)+2.6);
+    size = Math.min(sw,sh);
+    const w = size*SQ3*(COLS+0.5);
+    const h = size*1.5*(ROWS-1)+size*2.6;
+    const dpr = window.devicePixelRatio||1;
+    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+    cv.style.width=w+"px"; cv.style.height=h+"px";
+    cssW=w; cssH=h; clampCam();
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ox=size*SQ3/2; oy=size*1.3;
+  }
+  const center = x => [ox+size*SQ3*(x.c+0.5*(x.r&1)), oy+size*1.5*x.r];
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+  function updateLabels(){
+    for (const f of factions){
+      f.labelCell=null; f.labelArea=0;
+      if (!f.alive) continue;
+      const seen=new Set(); let best=[];
+      for (const x of cells){
+        if (x.owner!==f.id || seen.has(x)) continue;
+        const comp=[x]; seen.add(x);
+        for (let i=0;i<comp.length;i++) for (const y of comp[i].n) if (y.owner===f.id && isLand(y) && !seen.has(y)){ seen.add(y); comp.push(y); }
+        if (comp.length>best.length) best=comp;
+      }
+      if (!best.length) continue;
+      // pick the cell deepest inside the region so the label sits on its own land
+      const depth=new Map(), q=[];
+      for (const x of best) if (x.n.some(y=>y.owner!==f.id || !isLand(y))){ depth.set(x,0); q.push(x); }
+      for (let i=0;i<q.length;i++) for (const y of q[i].n) if (y.owner===f.id && isLand(y) && !depth.has(y)){ depth.set(y,depth.get(q[i])+1); q.push(y); }
+      let mx=0,my=0; best.forEach(x=>{ const [a,b]=center(x); mx+=a; my+=b; }); mx/=best.length; my/=best.length;
+      let pick=best[0], ps=-Infinity;
+      for (const x of best){ const [a,b]=center(x); const sc=(depth.get(x)||0)*size*2 - Math.hypot(a-mx,b-my)*0.5; if (sc>ps){ps=sc;pick=x;} }
+      f.labelCell=pick; f.labelArea=best.length;
+    }
+  }
+  function hexPath(cx,cy,s){
+    ctx.beginPath();
+    for (let i=0;i<6;i++){
+      const a=Math.PI/180*(60*i-30);
+      const px=cx+s*Math.cos(a), py=cy+s*Math.sin(a);
+      i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+    }
+    ctx.closePath();
+  }
+  const colorCache=new Map();
+  function mix(h1,h2,t){
+    const key=h1+h2+t; if(colorCache.has(key)) return colorCache.get(key);
+    const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+    const a=p(h1), b=p(h2);
+    const v=`rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(",")})`;
+    const hex="#"+a.map((v,i)=>Math.round(v+(b[i]-v)*t).toString(16).padStart(2,"0")).join("");
+    colorCache.set(key,hex); return hex;
+  }
+  const shade=(h,t)=>mix(h,t<0?"#000000":"#ffffff",Math.abs(t));
+  const lift = x => x.terrain==="water" ? 0 : x.terrain==="mountain" ? size*0.55 : size*0.3;
+
+  function draw(){
+    const dpr=window.devicePixelRatio||1, W=cv.width/dpr, H=cv.height/dpr;
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#3e6b80"); g.addColorStop(1,"#244657");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    const now=performance.now(), wave=now/1400;
+    const s=size*0.98, hw=s*SQ3/2;
+    const showNums = size*cam.z>=11;
+    ctx.save();
+    ctx.translate(cam.x,cam.y); ctx.scale(cam.z,cam.z);
+    if (shake>0) ctx.translate(rand(-shake,shake),rand(-shake,shake)*0.7);
+
+    for (const x of cells){
+      const [cx,cy0]=center(x);
+      if (x.terrain==="water"){
+        if (size>=8){
+          hexPath(cx,cy0+size*0.6,s);
+          ctx.fillStyle=`rgba(120,180,200,${0.08+0.06*Math.sin(wave+x.c*0.7+x.r*0.5)})`;
+          ctx.fill();
+        }
+        continue;
+      }
+      const bounce = x.flip>0 ? Math.sin(x.flip*Math.PI)*size*0.35 : 0;
+      const L=lift(x), cy=cy0+size*0.6-L-bounce;
+      let top;
+      if (x.terrain==="mountain") top="#8b8679";
+      else if (x.owner>=0) top=mix(factions[x.owner].color,"#000000",((x.c*7+x.r*13)%3)*0.04);
+      else top=NEUTRAL;
+      if (x.flip>0) top=mix(top,"#ffffff",Math.round(x.flip*10)/18);
+      // extruded sides
+      ctx.beginPath();
+      ctx.moveTo(cx-hw,cy+s/2); ctx.lineTo(cx-hw,cy+s/2+L); ctx.lineTo(cx,cy+s+L); ctx.lineTo(cx,cy+s); ctx.closePath();
+      ctx.fillStyle=shade(top,-0.32); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx+hw,cy+s/2); ctx.lineTo(cx+hw,cy+s/2+L); ctx.lineTo(cx,cy+s+L); ctx.lineTo(cx,cy+s); ctx.closePath();
+      ctx.fillStyle=shade(top,-0.5); ctx.fill();
+      // top
+      hexPath(cx,cy,s);
+      ctx.fillStyle=top; ctx.fill();
+      if (x.hit>0){ ctx.fillStyle=`rgba(255,60,30,${x.hit*0.45})`; ctx.fill(); }
+      if (x.scorch>0){
+        ctx.fillStyle=`rgba(28,18,10,${x.scorch*0.22})`; ctx.fill();
+        if (x.scorch>0.4){
+          ctx.fillStyle=`rgba(255,${120+Math.floor(Math.random()*80)},40,${x.scorch*0.9})`;
+          for (let i=0;i<2;i++){ const ex=cx+Math.sin(x.c*7+i*3)*s*0.4, ey=cy+Math.cos(x.r*5+i*2)*s*0.3; ctx.fillRect(ex,ey,Math.max(1.2,s*0.09),Math.max(1.2,s*0.09)); }
+        }
+      }
+      if (focusId>=0 && x.owner!==focusId){ ctx.fillStyle="rgba(10,14,18,.55)"; ctx.fill(); }
+      ctx.strokeStyle="rgba(0,0,0,.18)"; ctx.lineWidth=size<10?0.4:0.8; ctx.stroke();
+
+      if (x.terrain==="mountain"){
+        ctx.beginPath();
+        ctx.moveTo(cx-s*0.6,cy+s*0.35); ctx.lineTo(cx-s*0.1,cy-s*0.75); ctx.lineTo(cx+s*0.2,cy-s*0.2);
+        ctx.lineTo(cx+s*0.35,cy-s*0.45); ctx.lineTo(cx+s*0.7,cy+s*0.35); ctx.closePath();
+        ctx.fillStyle="#6c675c"; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(cx-s*0.27,cy-s*0.38); ctx.lineTo(cx-s*0.1,cy-s*0.75); ctx.lineTo(cx+s*0.06,cy-s*0.4);
+        ctx.closePath(); ctx.fillStyle="#f2f2ee"; ctx.fill();
+        continue;
+      }
+      if (x.forest && x.owner<0){
+        ctx.fillStyle="#3f6b33";
+        for (const [dx,dy] of [[-0.35,0.1],[0.3,-0.05],[0,0.35]]){
+          ctx.beginPath();
+          ctx.moveTo(cx+dx*s,cy+dy*s-s*0.32); ctx.lineTo(cx+dx*s-s*0.16,cy+dy*s+s*0.06); ctx.lineTo(cx+dx*s+s*0.16,cy+dy*s+s*0.06);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+      if (showNums && x.troops>0 && !x.capital){
+        const fs=Math.max(9,size*0.6);
+        ctx.font=`700 ${fs}px "Gowun Dodum", sans-serif`;
+        ctx.textAlign="center"; ctx.textBaseline="middle";
+        ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.55)"; ctx.strokeText(x.troops,cx,cy+s*0.05);
+        ctx.fillStyle=x.owner<0?"#e9efe0":"#fff"; ctx.fillText(x.troops,cx,cy+s*0.05);
+      } else if (!showNums && x.owner>=0 && x.troops>=25 && !x.capital){
+        // tiny garrison marker on small maps
+        ctx.fillStyle="rgba(255,255,255,.75)";
+        ctx.beginPath(); ctx.arc(cx,cy,Math.max(1.2,size*0.18),0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    // borders and burning front lines
+    const pulse=0.55+0.45*Math.sin(now/200);
+    ctx.lineCap="round";
+    for (const x of cells){
+      if (!isLand(x)) continue;
+      const i1=idx(x.c,x.r);
+      for (const y of x.n){
+        if (!isLand(y) || y.owner===x.owner || idx(y.c,y.r)<i1) continue;
+        if (x.owner<0 && y.owner<0) continue;
+        const [ax,ay]=topPos(x), [bx,by]=topPos(y);
+        const mx=(ax+bx)/2, my=(ay+by)/2, dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy)||1;
+        const px=-dy/len*s*0.46, py=dx/len*s*0.46, nx=dx/len, ny=dy/len;
+        const bw=Math.max(1.6,size*0.2), off=bw*0.6;
+        for (const [c,sg] of [[x,-1],[y,1]]){
+          if (c.owner<0) continue;
+          const ex=mx+nx*off*sg, ey=my+ny*off*sg;
+          ctx.beginPath(); ctx.moveTo(ex-px,ey-py); ctx.lineTo(ex+px,ey+py);
+          ctx.strokeStyle=shade(factions[c.owner].color,-0.5); ctx.lineWidth=bw; ctx.stroke();
+        }
+        if (x.owner>=0 && y.owner>=0){
+          ctx.beginPath(); ctx.moveTo(mx-px,my-py); ctx.lineTo(mx+px,my+py);
+          ctx.strokeStyle=`rgba(255,90,30,${0.3*pulse})`; ctx.lineWidth=Math.max(3,size*0.35); ctx.stroke();
+          ctx.strokeStyle=`rgba(255,220,150,${0.55+0.45*pulse})`; ctx.lineWidth=Math.max(0.8,size*0.06); ctx.stroke();
+        }
+      }
+    }
+
+    // capitals drawn after tiles so keeps and labels sit on top
+    const ks=Math.max(size,9);
+    for (const x of cells){
+      if (!x.capital) continue;
+      const [cx,cy0]=center(x); const cy=cy0+size*0.6-lift(x);
+      const c=factions[x.owner].color;
+      ctx.fillStyle="#d9d2c0"; ctx.fillRect(cx-ks*0.32,cy-ks*0.45,ks*0.64,ks*0.5);
+      ctx.fillStyle="#b9b19c";
+      for (let i=0;i<3;i++) ctx.fillRect(cx-ks*0.32+i*ks*0.26,cy-ks*0.57,ks*0.12,ks*0.14);
+      ctx.strokeStyle="#3a3125"; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(cx,cy-ks*0.57); ctx.lineTo(cx,cy-ks*1.15); ctx.stroke();
+      const fl=Math.sin(now/180+x.c)*ks*0.05;
+      ctx.beginPath(); ctx.moveTo(cx,cy-ks*1.15); ctx.lineTo(cx+ks*0.45,cy-ks*1.02+fl); ctx.lineTo(cx,cy-ks*0.88);
+      ctx.closePath(); ctx.fillStyle=c; ctx.fill();
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const fs=Math.max(10,Math.min(14,size*0.7));
+      ctx.font=`700 ${fs}px "Gowun Dodum", sans-serif`;
+      const label=`★${x.troops}`;
+      ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.7)";
+      ctx.strokeText(label,cx,cy+ks*0.5); ctx.fillStyle="#fff"; ctx.fillText(label,cx,cy+ks*0.5);
+    }
+
+    // territory name labels on each faction's main landmass
+    for (const f of factions){
+      if (!f.alive || !f.labelCell || f.labelArea<3) continue;
+      if (focusId>=0 && f.id!==focusId) continue;
+      const [lx,ly0]=topPos(f.labelCell);
+      const ly = ly0 - (f.labelCell.capital ? ks*1.7 : size*0.2);
+      const fsz=Math.round(Math.max(12,Math.min(24,4+Math.sqrt(f.labelArea)*1.6)));
+      ctx.font=`400 ${fsz}px "Black Han Sans", sans-serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const tw=ctx.measureText(f.name).width+fsz*0.9, th=fsz*1.45;
+      ctx.fillStyle="rgba(0,0,0,.35)";
+      roundRect(lx-tw/2+2,ly-th/2+3,tw,th,th/2); ctx.fill();
+      ctx.fillStyle=f.color; roundRect(lx-tw/2,ly-th/2,tw,th,th/2); ctx.fill();
+      ctx.strokeStyle=shade(f.color,-0.5); ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle=textOn(f.color); ctx.fillText(f.name,lx,ly+1);
+    }
+
+    // armies: big outlined soldiers with a banner and troop badge
+    const sortedArmies=[...armies].sort((a,b)=>armyPos(a)[1]-armyPos(b)[1]);
+    for (const a of sortedArmies){
+      const [px,py]=armyPos(a);
+      const f=factions[a.f], col=f.color, dark=shade(col,-0.55);
+      const attacking = a.to.owner!==a.f;
+      const ps = Math.max(size*1.25,15) * (attacking?1:0.72);
+      const dir = center(a.to)[0]>=center(a.from)[0] ? 1 : -1;
+      const count = attacking ? Math.min(a.sea?2:3, Math.max(1,Math.ceil(a.n/12))) : 1;
+      ctx.globalAlpha = attacking ? 1 : 0.85;
+      if (a.sea){
+        ctx.fillStyle="rgba(255,255,255,.4)";
+        ctx.beginPath(); ctx.ellipse(px,py+ps*0.55,ps*0.95,ps*0.1,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle="#7a4f2c"; ctx.strokeStyle="#2b1a0d"; ctx.lineWidth=Math.max(1.2,ps*0.06);
+        ctx.beginPath();
+        ctx.moveTo(px-ps*0.85,py+ps*0.2); ctx.lineTo(px+ps*0.85,py+ps*0.2);
+        ctx.lineTo(px+ps*0.55,py+ps*0.52); ctx.lineTo(px-ps*0.55,py+ps*0.52); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle=col; ctx.fillRect(px-ps*0.85,py+ps*0.2,ps*1.7,ps*0.08);
+      }
+      for (let i=0;i<count;i++){
+        const ax=px+(i-(count-1)/2)*ps*0.42, ay=py+(a.sea?0:(i%2)*ps*0.1);
+        const ph=a.t*16+i*1.7, hop=a.sea?0:Math.abs(Math.sin(ph))*ps*0.07, stride=a.sea?0:Math.sin(ph)*ps*0.1;
+        const by=ay-hop;
+        if (!a.sea){
+          ctx.fillStyle="rgba(0,0,0,.35)";
+          ctx.beginPath(); ctx.ellipse(ax,ay+ps*0.42,ps*0.2,ps*0.07,0,0,Math.PI*2); ctx.fill();
+          // legs
+          ctx.strokeStyle="#1d1a17"; ctx.lineWidth=Math.max(1.5,ps*0.08); ctx.lineCap="round";
+          ctx.beginPath(); ctx.moveTo(ax-ps*0.05,by+ps*0.22); ctx.lineTo(ax-ps*0.06+stride,by+ps*0.4);
+          ctx.moveTo(ax+ps*0.05,by+ps*0.22); ctx.lineTo(ax+ps*0.06-stride,by+ps*0.4); ctx.stroke();
+        }
+        // spear behind body
+        ctx.strokeStyle="#3a2814"; ctx.lineWidth=Math.max(1.3,ps*0.055);
+        ctx.beginPath(); ctx.moveTo(ax-dir*ps*0.05,by+ps*0.3); ctx.lineTo(ax+dir*ps*0.3,by-ps*0.55); ctx.stroke();
+        ctx.fillStyle="#eef2f4"; ctx.strokeStyle="#1d1a17"; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(ax+dir*ps*0.34,by-ps*0.68); ctx.lineTo(ax+dir*ps*0.38,by-ps*0.5); ctx.lineTo(ax+dir*ps*0.24,by-ps*0.53); ctx.closePath(); ctx.fill(); ctx.stroke();
+        // body with white halo so it pops on any tile colour
+        const body=()=>{ ctx.beginPath(); ctx.moveTo(ax-ps*0.16,by+ps*0.25); ctx.lineTo(ax+ps*0.16,by+ps*0.25);
+          ctx.lineTo(ax+ps*0.11,by-ps*0.06); ctx.quadraticCurveTo(ax,by-ps*0.12,ax-ps*0.11,by-ps*0.06); ctx.closePath(); };
+        body(); ctx.lineJoin="round";
+        ctx.strokeStyle="#ffffff"; ctx.lineWidth=Math.max(2.5,ps*0.14); ctx.stroke();
+        ctx.fillStyle=col; ctx.fill(); ctx.strokeStyle=dark; ctx.lineWidth=Math.max(1,ps*0.05); ctx.stroke();
+        // head + helmet with plume
+        const hy=by-ps*0.2;
+        ctx.beginPath(); ctx.arc(ax,hy,ps*0.12,0,Math.PI*2);
+        ctx.strokeStyle="#ffffff"; ctx.lineWidth=Math.max(2.5,ps*0.12); ctx.stroke();
+        ctx.fillStyle="#f0c79c"; ctx.fill(); ctx.strokeStyle="#1d1a17"; ctx.lineWidth=1; ctx.stroke();
+        ctx.beginPath(); ctx.arc(ax,hy-ps*0.01,ps*0.13,Math.PI,0); ctx.closePath();
+        ctx.fillStyle="#8d969c"; ctx.fill(); ctx.stroke();
+        ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(ax-dir*ps*0.03,hy-ps*0.17,ps*0.09,ps*0.05,-dir*0.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        // shield
+        ctx.beginPath(); ctx.arc(ax+dir*ps*0.13,by+ps*0.09,ps*0.12,0,Math.PI*2);
+        ctx.fillStyle="#ffffff"; ctx.fill();
+        ctx.beginPath(); ctx.arc(ax+dir*ps*0.13,by+ps*0.09,ps*0.085,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.fill(); ctx.strokeStyle=dark; ctx.lineWidth=1; ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      // war banner + troop badge
+      const fs=Math.max(11,Math.round(ps*0.5));
+      ctx.font=`700 ${fs}px "Gowun Dodum", sans-serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const label = attacking ? `⚔ ${a.n}` : `${a.n}`;
+      const bw=ctx.measureText(label).width+fs*0.8, bh=fs*1.35;
+      const bx=px, byb=py-ps*(attacking?0.95:0.7)-(count>1?ps*0.05:0);
+      if (attacking){
+        const pole=px-(count-1)/2*ps*0.42-dir*ps*0.15;
+        const wv=Math.sin(a.t*9)*ps*0.06;
+        ctx.strokeStyle="#2b1a0d"; ctx.lineWidth=Math.max(1.3,ps*0.05);
+        ctx.beginPath(); ctx.moveTo(pole,py+ps*0.3); ctx.lineTo(pole,byb+bh/2); ctx.stroke();
+      }
+      ctx.fillStyle="rgba(0,0,0,.35)"; roundRect(bx-bw/2+1.5,byb-bh/2+2,bw,bh,bh/2); ctx.fill();
+      ctx.fillStyle=col; roundRect(bx-bw/2,byb-bh/2,bw,bh,bh/2); ctx.fill();
+      ctx.strokeStyle= attacking ? "#ffffff" : dark; ctx.lineWidth= attacking?2:1; ctx.stroke();
+      ctx.fillStyle=textOn(col); ctx.fillText(label,bx,byb+1);
+    }
+
+    for (const f of flashes){
+      const [cx,cy0]=center(f.cell); const cy=cy0+size*0.6-lift(f.cell);
+      const k=f.t/0.5, fs=Math.max(size,8);
+      ctx.fillStyle=`rgba(255,240,200,${0.7*(1-k)})`;
+      for (let i=0;i<5;i++){
+        const an=i*1.256+f.t*3;
+        ctx.beginPath(); ctx.arc(cx+Math.cos(an)*fs*0.5*k,cy+Math.sin(an)*fs*0.3*k-fs*0.2,fs*0.18*(1-k*0.5),0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    for (const sh of shells){
+      const [sx,sy]=shellPos(sh);
+      ctx.fillStyle="#1d1b19";
+      ctx.beginPath(); ctx.arc(sx,sy,Math.max(1.8,size*0.13),0,Math.PI*2); ctx.fill();
+    }
+
+    for (const p of particles){
+      const k=p.life/p.max;
+      if (p.kind==="flash"){
+        ctx.globalAlpha=1-k;
+        const gr=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+        gr.addColorStop(0,p.color); gr.addColorStop(1,"rgba(255,160,60,0)");
+        ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      } else if (p.kind==="ring"){
+        ctx.globalAlpha=1-k; ctx.strokeStyle=p.color; ctx.lineWidth=Math.max(1.5,size*0.15)*(1-k)+1;
+        ctx.beginPath(); ctx.ellipse(p.x,p.y,p.r,p.r*0.6,0,0,Math.PI*2); ctx.stroke();
+      } else if (p.kind==="smoke"){
+        ctx.globalAlpha=0.5*(1-k)*Math.min(1,p.life*6);
+        ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.globalAlpha=1-k*k; ctx.fillStyle=p.color;
+        ctx.fillRect(p.x-p.r,p.y-p.r,p.r*2,p.r*2);
+      }
+    }
+    ctx.globalAlpha=1;
+
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    for (const t of texts){
+      const k=t.t/t.max;
+      const y=t.y-(t.big?28:18)*Math.min(1,t.t*1.5);
+      const sc = t.big ? 1+0.4*Math.max(0,1-t.t*4) : 1;
+      ctx.globalAlpha = k>0.7 ? (1-k)/0.3 : 1;
+      ctx.font = t.big ? `400 ${Math.round(Math.max(18,size*1.3)*sc)}px "Black Han Sans", sans-serif`
+                       : `700 ${Math.max(10,Math.round(size*0.55))}px "Gowun Dodum", sans-serif`;
+      ctx.lineWidth=t.big?5:3; ctx.strokeStyle="rgba(0,0,0,.75)";
+      ctx.strokeText(t.text,t.x,y); ctx.fillStyle=t.color; ctx.fillText(t.text,t.x,y);
+    }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  function renderStandings(){
+    const rows=factions.map(f=>{
+      let area=0, army=0;
+      for (const x of cells) if (x.owner===f.id){ area++; army+=x.troops; }
+      for (const a of armies) if (a.f===f.id) army+=a.n;
+      return {f,area,army,pct:area/landCount*100};
+    }).sort((a,b)=>b.area-a.area);
+    standingsEl.innerHTML=rows.map(({f,area,army,pct})=>`
+      <div class="row${focusId===f.id?" focus":""}" data-id="${f.id}" role="button" tabindex="0" aria-pressed="${focusId===f.id}">
+        <span class="dot" style="background:${f.color}"></span>
+        <span class="name ${f.alive?"":"dead"}">${f.name}${f.lostCapital&&f.alive?" (수도 상실)":""}</span>
+        <span class="num">${area}칸 · 병력 ${army}</span>
+        <span class="bar"><i style="width:${pct.toFixed(1)}%;background:${f.color}"></i></span>
+        <span class="loss">누적 전사자 ${f.losses}</span>
+      </div>`).join("");
+    updateLabels();
+    const neutral=cells.filter(x=>isLand(x)&&x.owner<0).length;
+    turnEl.textContent=`${tick}턴째 · 주인 없는 땅 ${neutral}칸`;
+  }
+
+  function loop(now){
+    const dt=Math.min(0.1,(now-last)/1000||0); last=now;
+    if (running){
+      const sdt=dt*speed;
+      acc+=sdt;
+      let stepped=false;
+      while (acc>=0.55){ acc-=0.55; if(!over){ step(); stepped=true; } }
+      for (const a of armies) a.t+=sdt;
+      const done=armies.filter(a=>a.t>=a.dur);
+      armies=armies.filter(a=>a.t<a.dur);
+      done.forEach(a=>{ if(factions[a.f].alive) resolve(a); });
+      if (done.length) checkWin();
+      if (stepped) renderStandings();
+      updateEffects(sdt);
+      flashes.forEach(f=>f.t+=sdt);
+      flashes=flashes.filter(f=>f.t<0.5);
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  const playBtn=document.getElementById("playBtn");
+  playBtn.onclick=()=>{
+    running=!running;
+    playBtn.textContent=running?"일시정지":"계속";
+    playBtn.classList.toggle("on",running);
+  };
+  document.querySelectorAll("[data-speed]").forEach(b=>b.onclick=()=>{
+    speed=+b.dataset.speed;
+    document.querySelectorAll("[data-speed]").forEach(x=>x.classList.toggle("on",x===b));
+  });
+  document.getElementById("newBtn").onclick=startGame;
+  const pickFocus = e => {
+    const row=e.target.closest(".row"); if (!row) return;
+    const id=+row.dataset.id; focusId = focusId===id ? -1 : id; renderStandings();
+  };
+  standingsEl.addEventListener("click",pickFocus);
+  standingsEl.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pickFocus(e); } });
+  const soundBtn=document.getElementById("soundBtn");
+  soundBtn.onclick=()=>{
+    soundOn=!soundOn;
+    if (soundOn){
+      try { actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); } catch(e){ soundOn=false; }
+    }
+    soundBtn.textContent = soundOn ? "소리 끄기" : "소리 켜기";
+    soundBtn.classList.toggle("on",soundOn);
+  };
+  mapSel.onchange=()=>{
+    document.getElementById("newBtn").textContent = mapSel.value==="random" ? "새 지도 만들기" : "다시 시작";
+    startGame();
+  };
+  factionSel.onchange=startGame;
+  window.addEventListener("resize",()=>{ resize(); updateLabels(); });
+
+  // ---------- zoom & pan ----------
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const zPct=document.getElementById("zPct");
+  function clampCam(){
+    cam.z=clamp(cam.z,1,6);
+    cam.x=clamp(cam.x,cssW-cssW*cam.z,0);
+    cam.y=clamp(cam.y,cssH-cssH*cam.z,0);
+    zPct.textContent=Math.round(cam.z*100)+"%";
+    cv.classList.toggle("pan",cam.z>1.01);
+  }
+  function zoomAt(sx,sy,factor){
+    const nz=clamp(cam.z*factor,1,6);
+    const wx=(sx-cam.x)/cam.z, wy=(sy-cam.y)/cam.z;
+    cam.z=nz; cam.x=sx-wx*nz; cam.y=sy-wy*nz; clampCam();
+  }
+  let camAnim=null;
+  function animateZoom(sx,sy,factor){
+    const target=clamp(cam.z*factor,1,6), start=cam.z, t0=performance.now();
+    cancelAnimationFrame(camAnim);
+    const stepZ=()=>{
+      const k=Math.min(1,(performance.now()-t0)/220), e=1-Math.pow(1-k,3);
+      zoomAt(sx,sy,(start+(target-start)*e)/cam.z);
+      if (k<1) camAnim=requestAnimationFrame(stepZ);
+    };
+    stepZ();
+  }
+  function localPt(e){
+    const r=cv.getBoundingClientRect();
+    return [(e.clientX-r.left)*cssW/r.width,(e.clientY-r.top)*cssH/r.height];
+  }
+  cv.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const [sx,sy]=localPt(e);
+    zoomAt(sx,sy,Math.exp(-e.deltaY*(e.ctrlKey?0.01:0.0018)));
+  },{passive:false});
+  cv.addEventListener("dblclick",e=>{ const [sx,sy]=localPt(e); animateZoom(sx,sy,e.shiftKey?0.5:2); });
+
+  const pointers=new Map(); let pinch=null, moved=0;
+  cv.addEventListener("pointerdown",e=>{
+    cv.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId,localPt(e)); moved=0;
+    if (pointers.size===2){
+      const [a,b]=[...pointers.values()];
+      pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),mx:(a[0]+b[0])/2,my:(a[1]+b[1])/2};
+    }
+    if (cam.z>1.01) cv.classList.add("dragging");
+  });
+  cv.addEventListener("pointermove",e=>{
+    if (!pointers.has(e.pointerId)) return;
+    const prev=pointers.get(e.pointerId), cur=localPt(e);
+    pointers.set(e.pointerId,cur);
+    if (pointers.size===2 && pinch){
+      const [a,b]=[...pointers.values()];
+      const d=Math.hypot(a[0]-b[0],a[1]-b[1]), mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2;
+      cam.x+=mx-pinch.mx; cam.y+=my-pinch.my;
+      zoomAt(mx,my,d/(pinch.d||1));
+      pinch={d,mx,my};
+    } else if (pointers.size===1){
+      cam.x+=cur[0]-prev[0]; cam.y+=cur[1]-prev[1];
+      moved+=Math.abs(cur[0]-prev[0])+Math.abs(cur[1]-prev[1]);
+      clampCam();
+    }
+  });
+  const endPointer=e=>{
+    pointers.delete(e.pointerId);
+    if (pointers.size<2) pinch=null;
+    if (!pointers.size) cv.classList.remove("dragging");
+  };
+  cv.addEventListener("pointerup",endPointer);
+  cv.addEventListener("pointercancel",endPointer);
+
+  document.getElementById("zIn").onclick=()=>animateZoom(cssW/2,cssH/2,1.6);
+  document.getElementById("zOut").onclick=()=>animateZoom(cssW/2,cssH/2,1/1.6);
+  document.getElementById("zFit").onclick=()=>animateZoom(cssW/2,cssH/2,1/cam.z);
+  window.addEventListener("keydown",e=>{
+    if (e.target.closest && e.target.closest("select,button,input")) return;
+    if (e.key==="+"||e.key==="=") animateZoom(cssW/2,cssH/2,1.4);
+    else if (e.key==="-"||e.key==="_") animateZoom(cssW/2,cssH/2,1/1.4);
+    else if (e.key==="0") animateZoom(cssW/2,cssH/2,1/cam.z);
+  });
+
+  startGame();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
